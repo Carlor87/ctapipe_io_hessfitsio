@@ -4,16 +4,11 @@ import matplotlib.pyplot as plt
 import copy
 
 from tqdm import tqdm
-from astropy.table import Table
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
-from ctapipe.instrument import CameraGeometry
-from ctapipe.calib import CameraCalibrator
 from ctapipe.image import hillas, tailcuts_clean
 from ctapipe.reco import HillasReconstructor
 from ctapipe.reco.reco_algorithms import InvalidWidthException
-from ctapipe.coordinates import *
-from ctapipe.visualization import CameraDisplay
 
 from ctapipe_io_hessfitsio import HESSfitsIOEventSource as hfio
 from ctapipe_io_hessfitsio.pointingcorrections import PointingCorrections as pc
@@ -21,7 +16,7 @@ from ctapipe_io_hessfitsio.pointingcorrections import PointingCorrections as pc
 if __name__ == "__main__":
     inputfile = hfio(input_url="/home/cromoli/Documents/hessfits/singlefiles_head/",allowed_tels=[1, 2, 3, 4])
 
-    loc = EarthLocation.from_geodetic(lon = 16.5002222222222*u.deg,lat=-23.2717777777778*u.deg,height=1835*u.m)
+    loc = EarthLocation.from_geodetic(lon = 16.5002222222222*u.deg,lat=-23.2717777777778*u.deg,height=1835*u.m) # HESS site location
 
     ShowerList = []
     ImageList = []

@@ -32,8 +32,5 @@ if __name__ == "__main__":
                                                            event.dl1.tel[j].image * mask0510[j])
                 except hillas.HillasParameterizationError:
                     continue
-            # ImageList.append(ExtendedImage)  # only for presentation purposes
-            # MaskList.append(mask0510)
-            # HillasList.append(HillasIm)
     print("End process!")
 
