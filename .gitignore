@@ -2,5 +2,4 @@ __pycache__/
 test/__pycache__/
 pointingcorrections/__pycache__/
 test/plotting.py
-
-
+test/*.png

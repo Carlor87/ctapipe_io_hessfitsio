@@ -92,7 +92,6 @@ class HESSfitsIOEventSource(EventSource):
             # it after each yield
             eventtable = hdul['TEVENTS']
             listfitstable.append(eventtable)
-            #listpointingtable.append(_read_pointing_corrections(f))
         maxevent = max(table.read_header()['NAXIS2'] for table in listfitstable)
         data = DataContainer() # initialization of the container
         data.meta['origin'] = "HESSfits"
@@ -131,24 +130,13 @@ class HESSfitsIOEventSource(EventSource):
             data.dl0.obs_id = obs_id
             data.dl0.event_id = event_id
             data.dl0.tels_with_data = tels_with_data
-            '''
-            # FIXME: resolve the handling of the allowed telescopes
-            if len(self.allowed_tels) > 0:
-                selected = tels_with_data & self.allowed_tels
-                if len(selected) == 0:
-                    continue  # skip event
-                data.r0.tels_with_data = selected
-                data.r1.tels_with_data = selected
-                data.dl0.tels_with_data = selected
-            '''
+            
             data.r0.tel.clear()
             data.r1.tel.clear()
             data.dl0.tel.clear()
             data.dl1.tel.clear()
             count = 0
             for tel_id in tels_with_data:
-                ## time of the event for each telescope, copied in the dl0.CameraContainer
-                # data.dl0.tel[tel_id].trigger_time = (TimeDelta(evdata[tel_id - 1]['TIME'], format='sec'))
                 npix = len(data.inst.subarray.tel[tel_id].camera.pix_id)
                 data.dl1.tel[tel_id].image = self.np.zeros(npix) # initialize with empty image
                 # write the image in the container
@@ -161,18 +149,14 @@ class HESSfitsIOEventSource(EventSource):
 
     def _build_subarray_info(self,fitsfile):
         '''
-        !!! TEMPORARY PACTH !!!
-        !!! NEEDS IMPROVEMENT !!!
-        Needs to open a new fits file because the telescope infos
-        are not in the main data file
-        TO BE MADE FASTER
-
-        Added also the reading of the camera file "chercam.fits"
-        with the position of the pixels
+        Added also the reading of the camera file "chercam.fits.gz"
+        with the position of the pixels.
+        The HESS-I camera in the ctapipe database does not corresespond to
+        the real camera (it works only for the Montecarlo data).
 
         Parameters
         ----------
-        runnumber: run number to match the correct file
+        fitsfile: fitsfile with the table of about the array details
 
         Returns
         -------
@@ -180,9 +164,7 @@ class HESSfitsIOEventSource(EventSource):
             instrumental information
         '''
         pathtofile = self.os.path.split(self.input_url)[0]+'/'
-        # newfilename = pathtofile+"run_00"+str(runnumber)+"_std_eventlist.fits" # Not needed anymore, table in  the main file
         chercamfile = pathtofile+"chercam.fits.gz"
-        # pixtab = Table.read(chercamfile,format='ascii') #read the table with the pixel position
         pixtab = Table.read(chercamfile,format='fits') #read the table with the pixel position
         subarray = SubarrayDescription("HESS-I")
         try:
@@ -192,26 +174,25 @@ class HESSfitsIOEventSource(EventSource):
 
             for tel_id in telescope_ids:
                 cam=pixtab[(tel_id-1)*960:tel_id*960]
-                geom = CameraGeometry(
-                                       tel_id,
-                                       cam['PIX_ID'],
-                                       self.np.array(cam['PIX_POSX'])*u.m,
-                                       self.np.array(cam['PIX_POSY'])*u.m,
-                                       self.np.array(cam['PIX_AREA'])*u.m*u.m,
-                                       pix_type='hexagonal'
-                )
-                #geom = CameraGeometry.from_name('HESS-I')
+                geom = CameraGeometry(tel_id,
+                                      cam['PIX_ID'],
+                                      self.np.array(cam['PIX_POSX'])*u.m,
+                                      self.np.array(cam['PIX_POSY'])*u.m,
+                                      self.np.array(cam['PIX_AREA'])*u.m*u.m,
+                                      pix_type='hexagonal')
                 foclen = teldata['FOCLEN'][tel_id-1] * u.m
-                mirror_area = 108*u.m*u.m                   # hard coded, NEED FIX! This column is empty in the original fits file!
-                num_tiles = 382                             # hard coded, missing in the original file
-                #optic = OpticsDescription('DC','MST','',foclen,mirror_area,num_tiles)
-                optic = OpticsDescription(name = 'MST',num_mirrors = 1,equivalent_focal_length = foclen,mirror_area = mirror_area,num_mirror_tiles = num_tiles)
-                
+                mirror_area = 108*u.m*u.m  # hard coded, NEED FIX! This column is empty in the original fits file!
+                num_tiles = 382            # hard coded, missing in the original file
+                optic = OpticsDescription(name = 'MST',
+                                          num_mirrors = 1,
+                                          equivalent_focal_length = foclen,
+                                          mirror_area = mirror_area,
+                                          num_mirror_tiles = num_tiles)
                 tel_pos = [
                     teldata['POSX'][tel_id-1],
                     teldata['POSY'][tel_id-1],
                     teldata['POSZ'][tel_id-1]
-                ] * u.m
+                    ] * u.m
                 tel = TelescopeDescription(optics = optic,camera = geom, name = 'HESSI', tel_type = 'MST')
                 subarray.tels[tel_id] = tel
                 subarray.positions[tel_id] = tel_pos
@@ -222,13 +203,3 @@ class HESSfitsIOEventSource(EventSource):
             self.log.error(msg)
             raise SystemExit
 
-    
-    def _read_pointing_corrections(self,fitsfile):
-        """
-        Test function to read the corrections
-        """
-        try:
-            hdu_array = FITS(fitsfile)[2] # open pointing correction table
-            return hdu_array
-        except:
-            pass

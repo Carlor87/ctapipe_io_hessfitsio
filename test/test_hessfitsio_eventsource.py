@@ -20,6 +20,7 @@ if __name__ == "__main__":
     with inputfile as source:
         gsource = (x for x in source)
         for i in tqdm(range(1000)):
+        #for event in source:  # for the whole run
             event = next(gsource)
             
     print("End process!")

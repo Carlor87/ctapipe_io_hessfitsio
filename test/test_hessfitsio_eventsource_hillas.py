@@ -1,8 +1,3 @@
-import astropy.units as u
-import numpy as np
-import matplotlib.pyplot as plt
-import copy
-
 from tqdm import tqdm
 from ctapipe.image import hillas, tailcuts_clean
 
