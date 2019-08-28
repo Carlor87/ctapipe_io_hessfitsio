@@ -1,5 +1,5 @@
 from ctapipe.instrument import CameraGeometry
-from ctapipe.visualization import CameraDisplay
+from ctapipe.visualization import CameraDisplay, ArrayDisplay
 import matplotlib.pyplot as plt
 import astropy.units as u
 from astropy.table import Table
@@ -31,8 +31,11 @@ geom = CameraGeometry(
     pix_type='hexagonal')  # Real camera
 
 def PlotEventExtended(extendedimage):
+    """
+    Plot the extended images of the events in the 
+    camera frame.
+    """
     camdef=Table.read("/home/cromoli/Documents/hessfits/pks2155flarerun_wImages_test.hap/chercam.fits.gz",format='fits')
-# separate the different cameras in different tables
     camdef1=camdef[0:960]
     camdef2=camdef[960:1920]
     camdef3=camdef[1920:2880]
@@ -44,10 +47,50 @@ def PlotEventExtended(extendedimage):
     np.array(camdef3['PIX_POSY']) * u.m,
     np.array(camdef3['PIX_AREA']) * u.m * u.m,
     pix_type='hexagonal')  # Real camera
-    geom2 = CameraGeometry.from_name('HESS-I') # only for MC
-    fig,axs = plt.subplots(1, 2, constrained_layout=True, figsize=(6, 3))
-    CameraDisplay(geom, ax=axs[0], image=extendedimage[2])
-    CameraDisplay(geom2, ax=axs[1], image=extendedimage[2])
+    #geom2 = CameraGeometry.from_name('HESS-I') # only for MC
+    ntrig = len(extendedimage)
+    fig,axs = plt.subplots(1, ntrig, constrained_layout=True, figsize=(ntrig*3, 3))
+    for ax,ima in zip(axs,extendedimage):
+        CameraDisplay(geom, ax=ax, image=extendedimage[ima])
+        ax.set_title("CT%i"%ima)
+    
+
+def PlotSummedImages(event,mask,hillas):
+    plt.figure()
+    disp = CameraDisplay(geom,title="HESS I")
+    disp.cmap = 'jet'
+    image=0
+    for ii in event.dl0.tels_with_data:
+        image += event.dl1.tel[ii].image*mask[ii]
+        disp.image = image
+        disp.overlay_moments(hillas[ii], color='pink', lw=3, with_label=False,keep_old=True)
+        
+
+def PlotArrayDisplay(event,hillas,shower,azim):
+    plt.figure()
+    disp = ArrayDisplay(event.inst.subarray)
+    time_gradients = {}
+    for telescope_id, dl1 in event.dl1.tel.items():
+        time_gradients[telescope_id] = hillas[telescope_id].skewness
+    disp.set_vector_hillas(hillas,
+                           time_gradient = time_gradients,
+                           angle_offset = azim, # not clear the meaning of this parameter
+                           length=200)
+    #disp.set_line_hillas(hillas,200) # this function will not take into account the azimuth angle of the array
+    if (not np.isnan(shower.core_uncert)):
+        plt.errorbar(shower.core_x.value,
+                 shower.core_y.value,
+                 xerr = shower.core_uncert.value,
+                 yerr = shower.core_uncert.value,
+                 fmt = 'ro',
+                 label = 'Reconstructed Core')
+    else:
+        plt.plot(shower.core_x,
+                 shower.core_y,
+                 'ro',
+                 label = 'Reconstructed Core')
+    plt.xlabel("Distance [m]")
+    plt.ylabel("Distance [m]")
     
     
     

@@ -7,6 +7,7 @@ from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 from ctapipe.image import hillas, tailcuts_clean
 from ctapipe.reco import HillasReconstructor
+from ctapipe.reco.hillas_intersection import HillasIntersection
 from ctapipe.reco.reco_algorithms import InvalidWidthException
 
 from ctapipe_io_hessfitsio import HESSfitsIOEventSource as hfio
@@ -27,8 +28,9 @@ if __name__ == "__main__":
     
     with inputfile as source:
         gsource = (x for x in source)
-        hillasReco = HillasReconstructor()
-        for i in tqdm(range(1000)):
+        #hillasReco = HillasReconstructor()
+        hillasReco = HillasIntersection()
+        for i in tqdm(range(3000)):
             event = next(gsource)
             HillasIm = dict()
             NomHillasIm = dict()
@@ -45,14 +47,11 @@ if __name__ == "__main__":
                                                            event.dl1.tel[j].image * mask0510[j])
                 except hillas.HillasParameterizationError:
                     continue
-            ImageList.append(ExtendedImage)  # only for presentation purposes
-            MaskList.append(mask0510)
-            HillasList.append(HillasIm)
             if len(HillasIm) < 2:
                 # at least 2 telescopes
                 continue
-            altaz = AltAz(location=loc, obstime=Time("2006-07-28 00:34:46")) # for testing, initial time of observation of the run
-            array_pointing = SkyCoord(alt = 82.918*u.deg, az=191.869*u.deg, frame = altaz) # for testing, initial pointing position of the run
+            altaz = AltAz(location=loc, obstime=Time("2006-07-28 00:35:29")) # for testing, initial time of observation of the run
+            array_pointing = SkyCoord(alt = 82.91834259*u.deg, az=191.85574341*u.deg, frame = altaz) # for testing, initial pointing position of the run
             obstime = event.trig.gps_time
             #altaz = AltAz(location=loc, obstime=obstime)
             #array_pointing = SkyCoord(alt = event.pointing.altitude*u.deg, az=event.pointing.azimuth*u.deg, frame = altaz)
@@ -72,33 +71,12 @@ if __name__ == "__main__":
                                             )
             except InvalidWidthException:
                 continue
+            # Storing results in list for further access
+            ImageList.append(ExtendedImage)  # only for presentation purposes
+            MaskList.append(mask0510)
+            HillasList.append(HillasIm)
             CoordList.append(SkyCoord(shower['az'],shower['alt'],frame=altaz))
             ShowerList.append(shower)
         print("End process!")
 
 
-    # storing the main results of the shower reconstruction into lists
-    # for better analysis and checks
-    corx = [x['core_x'].value for x in ShowerList]
-    cory = [x['core_y'].value for x in ShowerList]
-    alt = [x['alt'].value for x in ShowerList]
-    az = [x['az'].value for x in ShowerList]
-    hmax = [x['h_max'].value for x in ShowerList]
-    ra = [x.fk5.ra.value for x in CoordList]
-    dec = [x.fk5.dec.value for x in CoordList]
-    
-    
-    # produces a rough skymap according to the initial
-    # pointing of the array and compare with the position
-    # of PKS2155-304 and of the array pointing.
-    plt.figure()
-    plt.hist2d(ra,dec,bins=[np.linspace(324,334,50),np.linspace(-35,-25,50)])
-    plt.xlabel("Ra")
-    plt.ylabel("Dec")
-    plt.plot( 329.716938 ,  -30.225589 ,'ro')
-    plt.plot(array_pointing.fk5.ra.value,array_pointing.fk5.dec.value,'go')
-    plt.show()
-    
-    
-    
-    

@@ -1,5 +1,5 @@
 __pycache__/
 test/__pycache__/
 pointingcorrections/__pycache__/
-test/plotting.py
 test/*.png
+test/test_hessfitsio_eventsource_pipe_test.py

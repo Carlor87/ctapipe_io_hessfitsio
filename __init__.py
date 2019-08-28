@@ -174,7 +174,7 @@ class HESSfitsIOEventSource(EventSource):
 
             for tel_id in telescope_ids:
                 cam=pixtab[(tel_id-1)*960:tel_id*960]
-                geom = CameraGeometry(tel_id,
+                geom = CameraGeometry('CT%i'%tel_id,
                                       cam['PIX_ID'],
                                       self.np.array(cam['PIX_POSX'])*u.m,
                                       self.np.array(cam['PIX_POSY'])*u.m,
@@ -193,7 +193,7 @@ class HESSfitsIOEventSource(EventSource):
                     teldata['POSY'][tel_id-1],
                     teldata['POSZ'][tel_id-1]
                     ] * u.m
-                tel = TelescopeDescription(optics = optic,camera = geom, name = 'HESSI', tel_type = 'MST')
+                tel = TelescopeDescription(name = 'CT%i'%tel_id, tel_type = 'MST',optics = optic,camera = geom)
                 subarray.tels[tel_id] = tel
                 subarray.positions[tel_id] = tel_pos
             
